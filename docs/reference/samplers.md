@@ -135,7 +135,85 @@ This example is equivalent to:
 d1 $ slow 2 $ s "bev" # begin 0.2 # end 0.3 # legato 1
  ```
 
-## Sample effects
+## Dealing with sample overlap
+
+By default, samples play from start to end when they triggered. We can override this behavior so that they are cut off by the next event of the pattern.
+
+### cut
+
+```haskell
+Type: cut :: Pattern Int -> ControlPattern
+```
+
+In the style of classic drum-machines, `cut` will stop a playing sample as soon as another sample with in same cutgroup is to be played. For example,
+
+```haskell
+d1 $ fast 2 $ sound "ho:4 hc ho:4 hc" # cut 1
+```
+
+makes the pattern sound more realistic, by "choking" the open hi-hat when the closed one plays. 
+
+
+### legato
+
+```haskell
+Type: legato :: Pattern Double -> ControlPattern
+```
+
+`legato` modifies the note length relative to the event length. When its value is 1, is equivalent to stopping the sample when the next event (whether it is a sample or a silence), is triggered. Notice the difference between
+
+```haskell
+d1 $ sound "sax ~ ~ sax ~ ~ sax ~" # legato 1
+```
+
+and
+
+```haskell
+d1 $ sound "sax ~ ~ sax ~ ~ sax ~" # cut 1
+```
+
+Also, notice how these two lines are equivalent:
+```haskell
+d1 $ sound "sax ~" # legato 1
+d1 $ sound "sax" # legato 0.5
+```
+
+:::caution
+Not to be confused with `sustain`, which gives playback of a sample a duration in seconds.
+:::
+
+:::tip
+If you come from a classical music background, these two terms will probably sound conterintuitive, as there *legato* indicates that notes are to be played smoothly and connected, without silences, and that's what `cut` does in Tidal. You could think about the number after `legato` as the quantity of *tenuto* or each sample has. However, if it **really** bothers you, you can change your [Boot File](https://tidalcycles.org/docs/configuration/boot-tidal/) by appending the lines `tenuto = pF "legato"` and `legato = pI "cut"` in one of the `:{:}` blocks.
+:::
+
+### sustain
+
+```haskell
+Type: sustain :: Pattern Double -> ControlPattern
+```
+
+A pattern of numbers that indicates the total duration of sample playback in seconds.
+
+:::caution
+This `sustain` refers to the whole playback duration, and is not to be confused with the sustain level of a typical ADSR envelope.
+It's also not to be confused with `legato`, which modifies the playback duration relative to the event duration.
+:::
+
+```haskell
+d1 $ fast 2 $ s "breaks125:1" # cps (120/60/4) # sustain 1
+```
+
+At 120 BPM, a cycle lasts for two seconds. In the above example, we cut the sample so it plays just for one second, and repeat this part two times, so we fill the whole cycle. Note that sample pitch isn't modified.
+
+```haskell
+d1 $ s "breaks125:2!3" # cps (120/60/4) # sustain "0.4 0.2 0.4" # begin "0 0 0.4"
+```
+
+Here, we take advantage that `sustain` receives a pattern to build a different break from the original sample.
+
+## Speed-related effects
+
+These section presents effects change  that both the speed and the pitch of the samples.
 
 ### accelerate
 
@@ -177,29 +255,6 @@ d1 $ fast 2 $ s "breaks125:1" # cps (125/60/4) # speed (-2)
 
 In the above example, the break (which lasts for exactly one bar at 125 BPM), will be played backwards, and at double speed (so, we use `fast 2` to fill the whole cycle).
 
-### sustain
-
-```haskell
-Type: sustain :: Pattern Double -> ControlPattern
-```
-
-A pattern of numbers that indicates the total duration of sample playback in seconds.
-
-:::caution
-This `sustain` refers to the whole playback duration, and is not to be confused with the sustain level of a typical ADSR envelope.
-:::
-
-```haskell
-d1 $ fast 2 $ s "breaks125:1" # cps (120/60/4) # sustain 1
-```
-
-At 120 BPM, a cycle lasts for two seconds. In the above example, we cut the sample so it plays just for one second, and repeat this part two times, so we fill the whole cycle. Note that sample pitch isn't modified.
-
-```haskell
-d1 $ s "breaks125:2!3" # cps (120/60/4) # sustain "0.4 0.2 0.4" # begin "0 0 0.4"
-```
-
-Here, we take advantage that `sustain` receives a pattern to build a different break from the original sample.
 
 ### unit
 
